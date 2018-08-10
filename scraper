@@ -1,0 +1,193 @@
+from bs4 import BeautifulSoup
+from xlrd import open_workbook
+from xlutils.copy import copy
+
+import requests
+from openpyxl import load_workbook
+
+
+INDIV_SHEETS = ["CAD", "CHF", "GBP", "JPY", "EUR", "NZD", "USD",
+                "AUD", "Nikkei", "Dow Jones", "Silver", "Gold", "Oil"]
+
+# CHICAGO MERCANTILE EXCHANGE
+CURRENCIES = {
+    "CAD" : 90741,
+    "CHF" : 92741,
+    "GBP" : 96742,
+    "YEN" : 97741,
+    "EURO" : 99741,
+    "NZD" : 112741,
+    "AUD" : 232741,
+    "Nikkei" : 240741
+}
+
+# Chicago Board of Trade
+TRADES = {
+    "DJ": 124603
+}
+
+COMMODITIES = {
+    "SILVER" : 84691,
+    "GOLD" : 88691,
+    #"OIL" : 67651#CRUDE
+
+}
+
+ICE ={
+    "USD": 98662
+}
+
+NYME ={
+    "OIL": 67651
+}
+
+def get_row_count(sheet):
+    count = 1
+    for cell in sheet['C']:
+        if cell.value != None:
+            count += 1
+    return count
+
+def update_each_sheet(sheet, nc_long, nc_short, long_week, short_week, oi):
+    row_count = get_row_count(sheet)
+
+    #match each sheet to list of column for respective
+    #1,2 is nc long, short, 3,4, is long this week, short this week
+    column = {"CAD": ["C", "D", "F", "G"], "CHF":["C", "D", "F", "G"], "GBP":["B", "C", "E", "F"], "JPY":["B", "C", "E", "F"], "EUR":["C", "D", "F", "G"], "NZD":["B", "C", "E", "F"], "AUD":["B", "C", "E", "F"],
+                          "Nikkei"["B", "C", "E", "F"], "USD":["C", "D", "F", "G"], "Dow Jones":["B", "C", "E", "F"], "Silver":["B", "C", "E", "F"], "Gold":"B", "C", "E", "F"[], "Oil":["B", "C", "E", "F"]}
+    # update respective cells
+    cell1 = str(row_count)+column[sheet_name!!! not sheet][0]
+    cell2 = str(row_count)+column[sheet_name!!! not sheet][1]
+    cell3 = str(row_count)+column[sheet_name!!! not sheet][2]
+    cell4 = str(row_count)+column[sheet_name!!! not sheet][3]
+    print(first_key)
+    print(row_count)
+    return
+
+
+
+def update_all_sheets(wb ,curr_dict):
+
+    for sheet_name in INDIV_SHEETS:
+        dict_value = {"CAD":"CAD", "CHF":"CHF", "GBP":"GBP", "JPY":"YEN", "EUR":"EURO", "NZD":"NZD", "AUD":"AUD",
+                          "Nikkei":"Nikkei", "USD":"USD", "Dow Jones":"DJ", "Silver":"SILVER", "Gold":"GOLD", "Oil":"OIL" }# matches sheet_name to dict_name
+        print("sheet_name: {}, dict_name: {}".format(sheet_name, dict_value[sheet_name]))
+        update_each_sheet(wb[sheet_name], curr_dict[dict_value[sheet_name]][0]) ### CURR DICT KEY MIGHT NOT BESAME AS SHEETNAME
+
+
+    return
+
+
+def get_dets(CAD, s):
+    try:
+        row_all = s.split(str(CAD))[1].split('Changes')[0].split('All')[1].split('Old')[0].replace(":", "")
+        integers = row_all.split()
+        oi = integers[0]
+        nc_long = integers[1]
+        nc_short = integers[2]
+        c_long = integers[4]
+        c_short = integers[5]
+        return nc_long, nc_short, c_long, c_short, oi
+    except Exception as e:
+        print(CAD)
+        print("ERROR")
+        print(e)
+
+
+        raise
+
+
+def get_html(link):
+
+    r = requests.get(link)
+    soup = BeautifulSoup(r.content)
+    data=soup.findAll('pre')
+
+    return data[0].text
+
+
+def main():
+    data_string = get_html('https://www.cftc.gov/dea/futures/deacmelf.htm')
+    curr_dict = {}
+    for c, val in CURRENCIES.items():
+        print("#############################")
+
+        nc_long, nc_short, c_long, c_short, oi = get_dets(val, data_string)
+        curr_dict[c] = [nc_long, nc_short, c_long, c_short, oi]
+
+    data_string = get_html('https://www.cftc.gov/dea/futures/deacbtlf.htm')
+    for c, val in TRADES.items():
+        print("#############################")
+
+        nc_long, nc_short, c_long, c_short, oi = get_dets(val, data_string)
+        curr_dict[c] = [ nc_long, nc_short, c_long, c_short, oi]
+
+    data_string = get_html('https://www.cftc.gov/dea/futures/deacmxlf.htm')
+    for c, val in COMMODITIES.items():
+        print("#############################")
+
+        nc_long, nc_short, c_long, c_short, oi = get_dets(val, data_string)
+        curr_dict[c] = [nc_long, nc_short, c_long, c_short,oi]
+
+    data_string = get_html('https://www.cftc.gov/dea/futures/deanybtlf.htm')
+    for c, val in ICE.items():
+        print("##########ICE##########")
+        print(c)
+        nc_long, nc_short, c_long, c_short, oi = get_dets(val, data_string)
+        curr_dict[c] = [nc_long, nc_short, c_long, c_short,oi]
+
+    data_string = get_html('https://www.cftc.gov/dea/futures/deanymelf.htm')
+    for c, val in NYME.items():
+        print("#############################")
+
+        nc_long, nc_short, c_long, c_short, oi = get_dets(val, data_string)
+        curr_dict[c] = [nc_long, nc_short, c_long, c_short, oi]
+    print(curr_dict)
+    return curr_dict
+
+
+
+def insert_excel(curr_dict):
+    wb = load_workbook(filename='t1.xlsx')
+    Main = wb['Main']
+
+    #CANADA
+    Main['D3'], Main['E3'], Main['H3'], Main['I3'], Main['L3'] = curr_dict["CAD"][0], curr_dict["CAD"][1], curr_dict["CAD"][2], curr_dict["CAD"][3], curr_dict["CAD"][4]
+    #update_each_sheet( wb['CHF'], curr_dict["CAD"][0], curr_dict["CAD"][1], curr_dict["CAD"][2], curr_dict["CAD"][3], curr_dict["CAD"][4])
+    #CHF
+
+    Main['D4'], Main['E4'], Main['H4'], Main['I4'], Main['L4'] = curr_dict["CHF"][0], curr_dict["CHF"][1], curr_dict["CHF"][2], curr_dict["CHF"][3], curr_dict["CHF"][4]
+    #GBP
+    Main['D5'], Main['E5'], Main['H5'], Main['I5'], Main['L5'] = curr_dict["GBP"][0], curr_dict["GBP"][1], curr_dict["GBP"][2], curr_dict["GBP"][3], curr_dict["GBP"][4]
+    #YEN
+    Main['D6'], Main['E6'], Main['H6'], Main['I6'], Main['L6'] = curr_dict["YEN"][0], curr_dict["YEN"][1], curr_dict["YEN"][2], curr_dict["YEN"][3], curr_dict["YEN"][4]
+    #EURO
+    Main['D7'], Main['E7'], Main['H7'], Main['I7'], Main['L7'] = curr_dict["EURO"][0], curr_dict["EURO"][1], curr_dict["EURO"][2], curr_dict["EURO"][3], curr_dict["EURO"][4]
+    #NZD
+    Main['D8'], Main['E8'], Main['H8'], Main['I8'], Main['L8'] = curr_dict["NZD"][0], curr_dict["NZD"][1], curr_dict["NZD"][2], curr_dict["NZD"][3], curr_dict["NZD"][4]
+    #AUD
+    Main['D9'], Main['E9'], Main['H9'], Main['I9'], Main['L9'] = curr_dict["AUD"][0], curr_dict["AUD"][1], curr_dict["AUD"][2], curr_dict["AUD"][3], curr_dict["AUD"][4]
+    #Nikkei
+    Main['D10'], Main['E10'], Main['H10'], Main['I10'], Main['L10'] = curr_dict["Nikkei"][0], curr_dict["Nikkei"][1], curr_dict["Nikkei"][2], curr_dict["Nikkei"][3], curr_dict["Nikkei"][4]
+    #DJ
+    Main['D11'], Main['E11'], Main['H11'], Main['I11'], Main['L11'] = curr_dict["DJ"][0], curr_dict["DJ"][1], curr_dict["DJ"][2], curr_dict["DJ"][3], curr_dict["DJ"][4]
+    #SILVER
+    Main['D12'], Main['E12'], Main['H12'], Main['I12'], Main['L12'] = curr_dict["SILVER"][0], curr_dict["SILVER"][1], curr_dict["SILVER"][2], curr_dict["SILVER"][3], curr_dict["SILVER"][4]
+    #GOLD
+    Main['D13'], Main['E13'], Main['H13'], Main['I13'], Main['L13'] = curr_dict["GOLD"][0], curr_dict["GOLD"][1], curr_dict["GOLD"][2], curr_dict["GOLD"][3], curr_dict["GOLD"][4]
+    #OIL
+    Main['D14'], Main['E14'], Main['H14'], Main['I14'], Main['L14'] = curr_dict["OIL"][0], curr_dict["OIL"][1], curr_dict["OIL"][2], curr_dict["OIL"][3], curr_dict["OIL"][4]
+
+    #USD
+    Main['D15'], Main['E15'], Main['H15'], Main['I15'], Main['L15'] = curr_dict["USD"][0], curr_dict["USD"][1], curr_dict["USD"][2], curr_dict["USD"][3], curr_dict["USD"][4]
+
+    CAD_sheet = wb['CAD']
+    update_all_sheets(wb, curr_dict)
+
+    return
+curr_dict=main()
+insert_excel(curr_dict)
+
+
+
+
