@@ -28,8 +28,7 @@ TRADES = {
 
 COMMODITIES = {
     "SILVER" : 84691,
-    "GOLD" : 88691,
-    #"OIL" : 67651#CRUDE
+    "GOLD" : 88691
 
 }
 
@@ -42,26 +41,31 @@ NYME ={
 }
 
 def get_row_count(sheet):
-    count = 1
+    count = 2
     for cell in sheet['C']:
         if cell.value != None:
             count += 1
     return count
 
-def update_each_sheet(sheet, nc_long, nc_short, long_week, short_week, oi):
+def update_each_sheet(sheet, sheet_name, nc_long, nc_short, long_week, short_week):
     row_count = get_row_count(sheet)
 
     #match each sheet to list of column for respective
     #1,2 is nc long, short, 3,4, is long this week, short this week
     column = {"CAD": ["C", "D", "F", "G"], "CHF":["C", "D", "F", "G"], "GBP":["B", "C", "E", "F"], "JPY":["B", "C", "E", "F"], "EUR":["C", "D", "F", "G"], "NZD":["B", "C", "E", "F"], "AUD":["B", "C", "E", "F"],
-                          "Nikkei"["B", "C", "E", "F"], "USD":["C", "D", "F", "G"], "Dow Jones":["B", "C", "E", "F"], "Silver":["B", "C", "E", "F"], "Gold":"B", "C", "E", "F"[], "Oil":["B", "C", "E", "F"]}
+                          "Nikkei":["B", "C", "E", "F"], "USD":["C", "D", "F", "G"], "Dow Jones":["B", "C", "E", "F"], "Silver":["B", "C", "E", "F"], "Gold":["B", "C", "E", "F"], "Oil":["B", "C", "E", "F"]}
     # update respective cells
-    cell1 = str(row_count)+column[sheet_name!!! not sheet][0]
-    cell2 = str(row_count)+column[sheet_name!!! not sheet][1]
-    cell3 = str(row_count)+column[sheet_name!!! not sheet][2]
-    cell4 = str(row_count)+column[sheet_name!!! not sheet][3]
-    print(first_key)
-    print(row_count)
+    cell1 = column[sheet_name][0]+str(row_count)
+    cell2 = column[sheet_name][1]+str(row_count)
+    cell3 = column[sheet_name][2]+str(row_count)
+    cell4 = column[sheet_name][3]+str(row_count)
+    print(cell1, cell2, cell3, cell4)
+    print(sheet[cell1])
+    sheet[cell1] = nc_long
+    sheet[cell2] = nc_short
+    sheet[cell3] = long_week
+    sheet[cell4] = short_week
+
     return
 
 
@@ -72,8 +76,10 @@ def update_all_sheets(wb ,curr_dict):
         dict_value = {"CAD":"CAD", "CHF":"CHF", "GBP":"GBP", "JPY":"YEN", "EUR":"EURO", "NZD":"NZD", "AUD":"AUD",
                           "Nikkei":"Nikkei", "USD":"USD", "Dow Jones":"DJ", "Silver":"SILVER", "Gold":"GOLD", "Oil":"OIL" }# matches sheet_name to dict_name
         print("sheet_name: {}, dict_name: {}".format(sheet_name, dict_value[sheet_name]))
-        update_each_sheet(wb[sheet_name], curr_dict[dict_value[sheet_name]][0]) ### CURR DICT KEY MIGHT NOT BESAME AS SHEETNAME
-
+        params=curr_dict[dict_value[sheet_name]]
+        print(params)
+        update_each_sheet(wb[sheet_name], sheet_name,params[0],params[1], params[5], params[6])#  ### CURR DICT KEY MIGHT NOT BESAME AS SHEETNAME
+        #MISSING PARAMETERS^
 
     return
 
@@ -87,7 +93,14 @@ def get_dets(CAD, s):
         nc_short = integers[2]
         c_long = integers[4]
         c_short = integers[5]
-        return nc_long, nc_short, c_long, c_short, oi
+        this_week_row = s.split(str(CAD))[1].split('Changes')[1].split('Percent')[0].split(':')[4]
+        integers2 = this_week_row.split()
+        print(CAD)
+
+        long_week =integers2[0]
+        short_week =integers2[1]
+        print(long_week, short_week)
+        return nc_long, nc_short, c_long, c_short, oi, long_week, short_week #long_week, short_week
     except Exception as e:
         print(CAD)
         print("ERROR")
@@ -106,42 +119,43 @@ def get_html(link):
     return data[0].text
 
 
+
 def main():
     data_string = get_html('https://www.cftc.gov/dea/futures/deacmelf.htm')
     curr_dict = {}
     for c, val in CURRENCIES.items():
         print("#############################")
 
-        nc_long, nc_short, c_long, c_short, oi = get_dets(val, data_string)
-        curr_dict[c] = [nc_long, nc_short, c_long, c_short, oi]
+        nc_long, nc_short, c_long, c_short, oi, long_week, short_week = get_dets(val, data_string)
+        curr_dict[c] = [nc_long, nc_short, c_long, c_short, oi, long_week, short_week ]
 
     data_string = get_html('https://www.cftc.gov/dea/futures/deacbtlf.htm')
     for c, val in TRADES.items():
         print("#############################")
 
-        nc_long, nc_short, c_long, c_short, oi = get_dets(val, data_string)
-        curr_dict[c] = [ nc_long, nc_short, c_long, c_short, oi]
+        nc_long, nc_short, c_long, c_short, oi, long_week, short_week  = get_dets(val, data_string)
+        curr_dict[c] = [ nc_long, nc_short, c_long, c_short, oi, long_week, short_week ]
 
     data_string = get_html('https://www.cftc.gov/dea/futures/deacmxlf.htm')
     for c, val in COMMODITIES.items():
         print("#############################")
 
-        nc_long, nc_short, c_long, c_short, oi = get_dets(val, data_string)
-        curr_dict[c] = [nc_long, nc_short, c_long, c_short,oi]
+        nc_long, nc_short, c_long, c_short, oi, long_week, short_week  = get_dets(val, data_string)
+        curr_dict[c] = [nc_long, nc_short, c_long, c_short,oi, long_week, short_week ]
 
     data_string = get_html('https://www.cftc.gov/dea/futures/deanybtlf.htm')
     for c, val in ICE.items():
         print("##########ICE##########")
         print(c)
-        nc_long, nc_short, c_long, c_short, oi = get_dets(val, data_string)
-        curr_dict[c] = [nc_long, nc_short, c_long, c_short,oi]
+        nc_long, nc_short, c_long, c_short, oi, long_week, short_week  = get_dets(val, data_string)
+        curr_dict[c] = [nc_long, nc_short, c_long, c_short,oi, long_week, short_week ]
 
     data_string = get_html('https://www.cftc.gov/dea/futures/deanymelf.htm')
     for c, val in NYME.items():
         print("#############################")
 
-        nc_long, nc_short, c_long, c_short, oi = get_dets(val, data_string)
-        curr_dict[c] = [nc_long, nc_short, c_long, c_short, oi]
+        nc_long, nc_short, c_long, c_short, oi, long_week, short_week  = get_dets(val, data_string)
+        curr_dict[c] = [nc_long, nc_short, c_long, c_short, oi, long_week, short_week ]
     print(curr_dict)
     return curr_dict
 
@@ -184,6 +198,7 @@ def insert_excel(curr_dict):
     CAD_sheet = wb['CAD']
     update_all_sheets(wb, curr_dict)
 
+    wb.save('t3.xlsx')
     return
 curr_dict=main()
 insert_excel(curr_dict)
