@@ -6,4 +6,8 @@ column C
 append after last row
 for all shheets
 
-Missing the 2 cols for each indiv sheet
+to-do: 
+- check all values accurate from sample output
+- check all the equations
+
+cron job to do every sunday and email?

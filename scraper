@@ -6,6 +6,8 @@ import requests
 from openpyxl import load_workbook
 
 
+FILE = 't6.xlsx'
+
 INDIV_SHEETS = ["CAD", "CHF", "GBP", "JPY", "EUR", "NZD", "USD",
                 "AUD", "Nikkei", "Dow Jones", "Silver", "Gold", "Oil"]
 
@@ -47,32 +49,38 @@ def get_row_count(sheet):
             count += 1
     return count
 
-def update_each_sheet(sheet, sheet_name, nc_long, nc_short, long_week, short_week):
+def update_each_sheet(sheet, sheet_name, nc_long, nc_short, long_week, short_week, oi):
     row_count = get_row_count(sheet)
 
     #match each sheet to list of column for respective
     #1,2 is nc long, short, 3,4, is long this week, short this week
 
-    list1=["C", "D", "F", "G", "H","I", "J"]
+    list1=["C", "D", "F", "G", "H","I", "J"] #nc_long, nc_short, long week, short week, real, net, ratio
     list2=["B", "C", "E", "F", "G", "H","I"]
 
-    column = {"CAD": , "CHF":["C", "D", "F", "G", "I"], "GBP":["B", "C", "E", "F", "H"], "JPY":["B", "C", "E", "F", "H"], "EUR":["C", "D", "F", "G", "I" ], "NZD":["B", "C", "E", "F", "H"], "AUD":["B", "C", "E", "F", "H"],
-                          "Nikkei":["B", "C", "E", "F", "H", "I"], "USD":["C", "D", "F", "G", "I"], "Dow Jones":["B", "C", "E", "F", "H"], "Silver":["B", "C", "E", "F", "H"], "Gold":["B", "C", "E", "F"], "Oil":["B", "C", "E", "F", "H"]}
-    # update respective cells
+    column = {"CAD": list1, "CHF": list1, "GBP":list2, "JPY":list2, "EUR":list1, "NZD":list2, "AUD":list2,
+                          "Nikkei":list2, "USD":list1, "Dow Jones":list2, "Silver":list2, "Gold":list2, "Oil":list2}
+    # update respective cells, all strings
     cell1 = column[sheet_name][0]+str(row_count)
     cell2 = column[sheet_name][1]+str(row_count)
     cell3 = column[sheet_name][2]+str(row_count)
-    cell4 = column[sheet_name][3]+str(row_count) #Real
-    cell5 = column[sheet_name][4]+str(row_count) #Net
-    cell6 = column[sheet_name][5]+str(row_count) #Ratio
-    print(cell1, cell2, cell3, cell4)
+    cell4 = column[sheet_name][3]+str(row_count)
+    cell5 = column[sheet_name][4]+str(row_count) #real
+    cell6 = column[sheet_name][5]+str(row_count) #net
+    cell7 = column[sheet_name][6]+str(row_count) #ratio
+    prev_net_cell = column[sheet_name][5]+str(row_count-1) # net previous row
+
     print(sheet[cell1])
     sheet[cell1] = nc_long
     sheet[cell2] = nc_short
     sheet[cell3] = long_week
-    sheet[cell4] = short_week -  long_week # real position
-    sheet[cell5] = nc_short - nc_long #Net
-    sheet[cell6] = #ratio
+    sheet[cell4] = short_week
+    real_pos_val = int(short_week.replace(",", "")) - int(long_week.replace(",", ""))
+    sheet[cell5] =  real_pos_val# real position
+    
+    sheet[cell6] = sheet[prev_net_cell].value + real_pos_val #Net is  previous net + current real pos
+    sheet[cell7] = int(nc_long.replace(",", ""))/float(oi.replace(",", ""))*100 #ratio
+    # need to add percentage sign
 
     return
 
@@ -86,7 +94,9 @@ def update_all_sheets(wb ,curr_dict):
         print("sheet_name: {}, dict_name: {}".format(sheet_name, dict_value[sheet_name]))
         params=curr_dict[dict_value[sheet_name]]
         print(params)
-        update_each_sheet(wb[sheet_name], sheet_name,params[0],params[1], params[5], params[6])#  ### CURR DICT KEY MIGHT NOT BESAME AS SHEETNAME
+        #sheet, sheet_name, nc_long, nc_short, long_week, short_week, oi)
+        # [nc_long, nc_short, c_long, c_short, oi, long_week, short_week ]
+        update_each_sheet(wb[sheet_name], sheet_name,params[0],params[1], params[5], params[6], params[4])#  ### CURR DICT KEY MIGHT NOT BESAME AS SHEETNAME
         #MISSING PARAMETERS^
 
     return
@@ -129,7 +139,7 @@ def get_html(link):
 
 
 def main():
-    data_string = get_html('https://www.cftc.gov/dea/futures/deacmelf.htm')
+    data_string = get_html('http://www.cftc.gov/dea/futures/deacmelf.htm')
     curr_dict = {}
     for c, val in CURRENCIES.items():
         print("#############################")
@@ -137,31 +147,24 @@ def main():
         nc_long, nc_short, c_long, c_short, oi, long_week, short_week = get_dets(val, data_string)
         curr_dict[c] = [nc_long, nc_short, c_long, c_short, oi, long_week, short_week ]
 
-    data_string = get_html('https://www.cftc.gov/dea/futures/deacbtlf.htm')
+    data_string = get_html('http://www.cftc.gov/dea/futures/deacbtlf.htm')
     for c, val in TRADES.items():
-        print("#############################")
-
         nc_long, nc_short, c_long, c_short, oi, long_week, short_week  = get_dets(val, data_string)
         curr_dict[c] = [ nc_long, nc_short, c_long, c_short, oi, long_week, short_week ]
 
-    data_string = get_html('https://www.cftc.gov/dea/futures/deacmxlf.htm')
+    data_string = get_html('http://www.cftc.gov/dea/futures/deacmxlf.htm')
     for c, val in COMMODITIES.items():
-        print("#############################")
-
         nc_long, nc_short, c_long, c_short, oi, long_week, short_week  = get_dets(val, data_string)
         curr_dict[c] = [nc_long, nc_short, c_long, c_short,oi, long_week, short_week ]
 
-    data_string = get_html('https://www.cftc.gov/dea/futures/deanybtlf.htm')
+    data_string = get_html('http://www.cftc.gov/dea/futures/deanybtlf.htm')
     for c, val in ICE.items():
-        print("##########ICE##########")
         print(c)
         nc_long, nc_short, c_long, c_short, oi, long_week, short_week  = get_dets(val, data_string)
         curr_dict[c] = [nc_long, nc_short, c_long, c_short,oi, long_week, short_week ]
 
-    data_string = get_html('https://www.cftc.gov/dea/futures/deanymelf.htm')
+    data_string = get_html('http://www.cftc.gov/dea/futures/deanymelf.htm')
     for c, val in NYME.items():
-        print("#############################")
-
         nc_long, nc_short, c_long, c_short, oi, long_week, short_week  = get_dets(val, data_string)
         curr_dict[c] = [nc_long, nc_short, c_long, c_short, oi, long_week, short_week ]
     print(curr_dict)
@@ -170,7 +173,7 @@ def main():
 
 
 def insert_excel(curr_dict):
-    wb = load_workbook(filename='t1.xlsx')
+    wb = load_workbook(filename=FILE)
     Main = wb['Main']
 
     #CANADA
@@ -203,10 +206,9 @@ def insert_excel(curr_dict):
     #USD
     Main['D15'], Main['E15'], Main['H15'], Main['I15'], Main['L15'] = curr_dict["USD"][0], curr_dict["USD"][1], curr_dict["USD"][2], curr_dict["USD"][3], curr_dict["USD"][4]
 
-    CAD_sheet = wb['CAD']
     update_all_sheets(wb, curr_dict)
 
-    wb.save('t3.xlsx')
+    wb.save(FILE)
     return
 curr_dict=main()
 insert_excel(curr_dict)
