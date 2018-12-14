@@ -1,7 +1,7 @@
 # Forex data scraper and server
 - Script scrapes data from CTFC
 - computes signals and updates excel sheet weekly
-- hosted on server
+- password protected site hosted on server for file download
 - private data not uploaded on github
 
 # References
