@@ -8,7 +8,7 @@ import time
 
 date=time.strftime("%m-%d-%y")
 
-FILE = "HELLO_WORLD.xlsx" # 2bd: better to rename as date
+FILE = "week89.xlsx" # 2bd: better to rename as date
 
 INDIV_SHEETS = ["CAD", "CHF", "GBP", "JPY", "EUR", "NZD", "USD",
                 "AUD", "Nikkei", "Dow Jones", "Silver", "Gold", "Oil"]
@@ -104,6 +104,7 @@ def update_each_sheet_NONCOMM(sheet, sheet_name, nc_long, nc_short, nc_long_week
         ratio = float_nclong / float_ncshort
     else:
         ratio = (float_ncshort/ float_nclong)*-1
+
     sheet[cell8] = str('%.2f' % ratio)
 
     sheet[cell9] = str('%.2f' % (float_nclong/float(oi.replace(",", ""))*100)) + "%"
@@ -194,9 +195,11 @@ def update_all_sheets(wb ,curr_dict):
     """ Calls functions to update each individual sheet with NON-COMM and COMM data """
     for sheet_name in INDIV_SHEETS:
 
-        dict_value = {"CAD":"CAD", "CHF":"CHF", "GBP":"GBP", "JPY":"YEN", "EUR":"EURO", "NZD":"NZD", "AUD":"AUD",
-                          "Nikkei":"Nikkei", "USD":"USD", "Dow Jones":"DJ", "Silver":"SILVER", "Gold":"GOLD", "Oil":"OIL" }# matches sheet_name to dict_name
-        print("sheet_name: {}, dict_name: {}".format(sheet_name, dict_value[sheet_name]))
+        dict_value = {
+            "CAD":"CAD", "CHF":"CHF", "GBP":"GBP", "JPY":"YEN", "EUR":"EURO", "NZD":"NZD", "AUD":"AUD",
+            "Nikkei":"Nikkei", "USD":"USD", "Dow Jones":"DJ", "Silver":"SILVER", "Gold":"GOLD", "Oil":"OIL" 
+        }# matches sheet_name to dict_name
+
         params=curr_dict[dict_value[sheet_name]]
 
         #sheet, sheet_name, nc_long, nc_short, nc_long_week, nc_short_week, oi)
@@ -206,10 +209,7 @@ def update_all_sheets(wb ,curr_dict):
         update_each_sheet_NONCOMM(wb[sheet_name], sheet_name,params[0],params[1], params[5], params[6], params[4])
         #(sheet, sheet_name, c_long, c_short, c_long_week, c_short_week, oi
 
-        print(wb[sheet_name], sheet_name,params[2],params[3], params[5], params[6], params[4])
         update_each_sheet_COMM(wb[sheet_name], sheet_name,params[2],params[3], params[7], params[8], params[4])
-
-
     return
 
 
@@ -226,7 +226,6 @@ def get_dets(CAD, s): #2bd: CAD is a bad var name
         this_week_row = s.split(str(CAD))[1].split('Changes')[1].split('Percent')[0].split(':')[4]
         integers2 = this_week_row.split()
 
-
         nc_long_week =integers2[0]
         nc_short_week =integers2[1]
 
@@ -235,17 +234,11 @@ def get_dets(CAD, s): #2bd: CAD is a bad var name
             c_long_week = integers2[3]
             c_short_week =integers2[4]
         else:
-            print("There arent 7 items in the changes line, format has changed!")
             raise
-
-
         return nc_long, nc_short, c_long, c_short, oi, nc_long_week, nc_short_week, c_long_week, c_short_week
     except Exception as e:
-        print(CAD)
         print("ERROR")
         print(e)
-
-
         raise
 
 
